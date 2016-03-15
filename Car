@@ -1,0 +1,78 @@
+package HibernateExample;
+
+
+import javax.persistence.*;
+import java.util.Set;
+
+@Entity
+@Table(name = "cars")
+public class Car {
+
+    @Id
+    @GeneratedValue
+    private Integer id;
+    private String make;
+    private String model;
+    private Integer year;
+
+
+
+    @ManyToMany(cascade=CascadeType.ALL)
+    @JoinTable(
+            name="car_manufacturer",
+            joinColumns = { @JoinColumn( name="car_id") },
+            inverseJoinColumns = @JoinColumn( name="manufacturer_id")
+    )
+    private Set<Manufacturer> manufacturers;
+
+    public Car() {
+
+    }
+
+
+    @Override
+    public String toString() {
+        return "Car{" +
+                "  id=" + id +
+                ", make='" + make + '\'' +
+                ", model='" + model + '\'' +
+                ", year=" + year +
+                '}';
+    }
+
+    public Integer getId() {
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+
+    public String getMake() {
+        return make;
+    }
+
+    public void setMake(String make) {
+        this.make = make;
+    }
+
+    public String getModel() {
+        return model;
+    }
+
+    public void setModel(String model) {
+        this.model = model;
+    }
+
+    public Integer getYear() {
+        return year;
+    }
+
+    public void setYear(Integer year) {
+        this.year = year;
+    }
+
+    public Set<Manufacturer> getManufacturers() {
+        return manufacturers;
+    }
+}
