@@ -1,0 +1,203 @@
+package HibernateExample;
+
+
+import org.hibernate.Query;
+import org.hibernate.Session;
+import org.hibernate.Transaction;
+
+import java.util.Iterator;
+import java.util.List;
+import java.util.Set;
+
+public class HibRunner {
+    private List<Car> cars;
+    private HibConfig theHibernateUtility;
+
+    public HibRunner(){
+        theHibernateUtility = new HibConfig();
+    }
+
+    public static void main(String[] args){
+
+        HibRunner HibernateExample = new HibRunner();
+            HibernateExample.addNewCar();
+            HibernateExample.showAllCars();
+            HibernateExample.modifyCars();
+            HibernateExample.addSharedManufacturer();
+            HibernateExample.deleteAddedCars();
+
+    }
+
+
+     // show how to add records to the database
+
+    private void addNewCar() {
+
+        Session session = theHibernateUtility.getCurrentSession();
+
+         // all database interactions in Hibernate are required to be inside a transaction.
+
+        Transaction transaction = session.beginTransaction();
+
+         // create some User instances.
+
+        Car vehicle1 = new Car();
+        vehicle1.setMake("Chevy");
+        vehicle1.setModel("Silverado");
+        vehicle1.setYear(2015);
+
+        Car vehicle2 = new Car();
+        vehicle2.setMake("GMC");
+        vehicle2.setModel("Sierra");
+        vehicle2.setYear(2016);
+
+
+
+         // save each instance as a record in the database
+
+        session.save(vehicle1);
+        session.save(vehicle2);
+        transaction.commit();
+
+        //prove that the User instances were added to the database and that
+         // the instances were each updated with a database generated id.
+
+        System.out.println("vehicle1 generated ID is: " + vehicle1.getId());
+        System.out.println("vehicle2 generated ID is: " + vehicle2.getId());
+    }
+
+     // show how to get a collection of type List containing all of the records in the app_user table
+
+
+    private void showAllCars() {
+        Session session = theHibernateUtility.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+
+         // execute a HQL query against the database.  HQL is NOT SQL.  It is object based.
+
+        Query allCarsQuery = session.createQuery("select u from Car as u order by u.id");
+
+        // get a list of User instances based on what was found in the database tables.
+
+        cars = allCarsQuery.list();
+        System.out.println("Number of cars: "+ cars.size());
+
+         // iterate over each User instance returned by the query and found in the list.
+
+        Iterator<Car> iter = cars.iterator();
+        while(iter.hasNext()) {
+            Car element = iter.next();
+            System.out.println(element.toString());
+            System.out.println("Manufacturers: " + element.getManufacturers().size());
+        }
+        transaction.commit();
+
+        System.out.println();
+    }
+
+
+     // show how to modify a database record
+
+    private void modifyCars() {
+
+        Session session = theHibernateUtility.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+
+         // get a single User instance from the database.
+
+        Query singleCarQuery = session.createQuery("select u from Car as u where u.make='GMC'");
+        Car vehicle2 = (Car)singleCarQuery.uniqueResult();
+
+         // change the user name for the Java instance
+
+        vehicle2.setModel("Sierra");
+
+         // call the session merge method for the User instance in question.  This tells the database that the instance is ready to be permanently stored.
+
+        session.merge(vehicle2);
+
+
+        // call the transaction commit method.  This tells the database that the changes are ready to be permanently stored.
+
+        transaction.commit();
+
+        // permanently store the changes into the database tables.
+
+        showAllCars();
+    }
+
+    private void addSharedManufacturer() {
+        Session session = theHibernateUtility.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+
+         // get two User instances from the database using HQL.  This is NOT SQL.  It is object based.
+
+        Query ColoradoQuery = session.createQuery("select u from Car as u where u.make='Chevy'");
+        Car ChevyModel = (Car)ColoradoQuery.uniqueResult();
+
+        Query CanyonQuery = session.createQuery("select u from Car as u where u.make='GMC'");
+        Car GMCModel = (Car)CanyonQuery.uniqueResult();
+
+
+         // create a PhoneNumber instance
+
+        Manufacturer sharedManufacturer = new Manufacturer();
+        sharedManufacturer.setName("General Motors");
+
+
+        // add the shared phone number to the joshuaUser
+
+
+        Set<Manufacturer> canyonManufacturer = GMCModel.getManufacturers();
+        canyonManufacturer.add(sharedManufacturer);
+
+       // set the single phone number to be used by more than one User
+
+        Set<Manufacturer> coloradoManufacturer = ChevyModel.getManufacturers();
+        coloradoManufacturer.add(sharedManufacturer);
+
+        // inform the database that the phone number should be ready for permanent storage.
+
+        session.save(sharedManufacturer);
+
+       // inform the database that the modified User instances should be ready for permanent storage.
+
+        session.merge(ChevyModel);
+        session.merge(GMCModel);
+
+
+       // permanently store the changes into the database tables.
+
+        transaction.commit();
+
+        // show that the database was updated by printing out all of the User instances created by a HQL query
+
+        showAllCars();
+    }
+
+    private void deleteAddedCars() {
+        Session session = theHibernateUtility.getCurrentSession();
+        Transaction transaction = session.beginTransaction();
+
+        int numCars = cars.size();
+        System.out.println("cars count: " + numCars);
+        for(int i = 0; i < numCars; i++){
+            System.out.println("deleting car "+cars.get(i).getMake());
+            session.delete(cars.get(i));
+        }
+        transaction.commit();
+
+          //at this point the records have been removed from the database but still exist in our class list attribute.
+          //Do not store lists retrieved from the database since they will be out of synch with the database table from which they come.
+          // This example shows that you should not store retrieved lists.
+
+        System.out.println(cars);
+        cars.clear();
+
+          // now the Java instances are also gone and the database is back to its original state so the example application can be run again.
+
+        System.out.println(cars);
+    }
+
+
+}
